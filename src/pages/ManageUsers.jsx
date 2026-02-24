@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { supabase, supabaseAdmin } from '../services/supabaseClient';
-import { ShieldCheck, UserPlus, Users, Trash2 } from 'lucide-react';
+import { ShieldCheck, UserPlus, Users, Trash2, Search } from 'lucide-react';
 
 export default function ManageUsers() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [newUser, setNewUser] = useState({ email: '', password: '', full_name: '', role: 'patient' });
     const [creating, setCreating] = useState(false);
+    const [activeTab, setActiveTab] = useState('staff'); // 'staff' | 'patients'
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         fetchUsers();
@@ -89,6 +91,11 @@ export default function ManageUsers() {
         }
     };
 
+    const staffUsers = users.filter(u => u.role !== 'patient' && (u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.email?.toLowerCase().includes(searchQuery.toLowerCase())));
+    const patientUsers = users.filter(u => u.role === 'patient' && (u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.email?.toLowerCase().includes(searchQuery.toLowerCase())));
+
+    const currentUsers = activeTab === 'staff' ? staffUsers : patientUsers;
+
     return (
         <div className="container animate-fade-in">
             <div className="flex-between" style={{ marginBottom: '2rem' }}>
@@ -106,7 +113,7 @@ export default function ManageUsers() {
             <div className="card" style={{ marginBottom: '2rem', padding: '2rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
                     <UserPlus size={20} color="var(--primary)" />
-                    <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Register New Account</h2>
+                    <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Register New Staff Account</h2>
                 </div>
                 <form onSubmit={handleCreateUser} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'end' }}>
                     <div className="form-group" style={{ marginBottom: 0 }}>
@@ -136,6 +143,35 @@ export default function ManageUsers() {
                 </form>
             </div>
 
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-card)', padding: '0.4rem', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                    <button
+                        onClick={() => setActiveTab('staff')}
+                        className={`btn ${activeTab === 'staff' ? 'btn-primary' : ''}`}
+                        style={{ padding: '0.5rem 1.25rem', fontSize: '0.9rem', background: activeTab === 'staff' ? 'var(--primary)' : 'transparent', color: activeTab === 'staff' ? 'white' : 'var(--text-muted)', border: 'none' }}
+                    >
+                        Staff Accounts ({staffUsers.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('patients')}
+                        className={`btn ${activeTab === 'patients' ? 'btn-primary' : ''}`}
+                        style={{ padding: '0.5rem 1.25rem', fontSize: '0.9rem', background: activeTab === 'patients' ? 'var(--primary)' : 'transparent', color: activeTab === 'patients' ? 'white' : 'var(--text-muted)', border: 'none' }}
+                    >
+                        Patient Accounts ({patientUsers.length})
+                    </button>
+                </div>
+                <div style={{ position: 'relative', width: '300px' }}>
+                    <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input
+                        type="text"
+                        placeholder="Search by name or email..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        style={{ paddingLeft: '40px', width: '100%' }}
+                    />
+                </div>
+            </div>
+
             <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
                 <div className="table-container">
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -152,12 +188,12 @@ export default function ManageUsers() {
                                 <tr>
                                     <td colSpan="4" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading network users...</td>
                                 </tr>
-                            ) : users.length === 0 ? (
+                            ) : currentUsers.length === 0 ? (
                                 <tr>
-                                    <td colSpan="4" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>No users found in database.</td>
+                                    <td colSpan="4" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>No {activeTab} users matching your search.</td>
                                 </tr>
                             ) : (
-                                users.map(user => (
+                                currentUsers.map(user => (
                                     <tr key={user.id} style={{ borderBottom: '1px solid var(--border)' }}>
                                         <td style={{ padding: '1rem 1.5rem', fontWeight: '500' }}>{user.full_name || 'Unnamed User'}</td>
                                         <td style={{ padding: '1rem 1.5rem' }}>

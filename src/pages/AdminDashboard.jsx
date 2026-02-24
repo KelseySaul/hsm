@@ -36,7 +36,7 @@ export default function AdminDashboard() {
         <div className="container animate-fade-in">
             <div className="flex-between" style={{ marginBottom: '2rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ background: 'linear-gradient(135deg, var(--primary), var(--secondary))', padding: '12px', borderRadius: '12px', color: 'white', boxShadow: 'var(--neon-glow)' }}>
+                    <div style={{ background: 'var(--primary)', padding: '12px', borderRadius: '12px', color: 'white' }}>
                         <ShieldCheck size={32} />
                     </div>
                     <div>
@@ -87,15 +87,13 @@ export default function AdminDashboard() {
 
 function StatCard({ icon, label, value, color }) {
     return (
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: color, filter: 'blur(50px)', opacity: 0.15, borderRadius: '50%' }}></div>
-
-            <div style={{ background: `${color}20`, color: color, padding: '16px', borderRadius: '12px', border: `1px solid ${color}30` }}>
+        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', position: 'relative', overflow: 'hidden', borderLeft: `4px solid ${color}` }}>
+            <div style={{ background: `${color}15`, color: color, padding: '16px', borderRadius: '12px' }}>
                 {icon}
             </div>
             <div>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: '500', fontFamily: "'Outfit', sans-serif" }}>{label}</p>
-                <p style={{ fontSize: '2rem', fontWeight: '700', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.02em', background: `linear-gradient(135deg, #fff, ${color})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{value}</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '500', fontFamily: "'Outfit', sans-serif", textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
+                <p style={{ fontSize: '1.75rem', fontWeight: '700', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.02em', margin: 0 }}>{value}</p>
             </div>
         </div>
     );

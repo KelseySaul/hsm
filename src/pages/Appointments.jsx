@@ -123,7 +123,7 @@ export default function Appointments() {
                         status: 'scheduled',
                         appointment_date: dateTimeStr,
                         reason: JSON.stringify({
-                            state: 'waiting_for_triage',
+                            state: 'confirmed',
                             symptoms: req.reason + (req.notes ? ` - ${req.notes}` : '')
                         })
                     }]);
@@ -146,6 +146,25 @@ export default function Appointments() {
         if (!window.confirm(`Cancel appointment request from ${req.first_name} ${req.last_name}?`)) return;
         await supabase.from('appointment_requests').update({ status: 'cancelled' }).eq('id', req.id);
         fetchRequests();
+    };
+
+    const handleCheckIn = async (appt) => {
+        try {
+            let payload = {};
+            try { payload = JSON.parse(appt.reason || '{}'); } catch { }
+            payload.state = 'waiting_for_triage';
+
+            const { error } = await supabase
+                .from('appointments')
+                .update({ reason: JSON.stringify(payload) })
+                .eq('id', appt.id);
+
+            if (error) throw error;
+            alert('Patient successfully checked in and added to triage queue.');
+            fetchAppointments();
+        } catch (err) {
+            alert('Failed to check in: ' + err.message);
+        }
     };
 
     const getStatusBadge = (status) => {
@@ -405,6 +424,15 @@ export default function Appointments() {
                                             <span style={{ ...statusStyle, padding: '4px 12px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: '600' }}>
                                                 {statusStyle.label}
                                             </span>
+                                            {appt.status === 'scheduled' && !appt.reason?.includes('"state":"waiting_for_triage"') && (
+                                                <button
+                                                    onClick={() => handleCheckIn(appt)}
+                                                    className="btn btn-primary"
+                                                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                                                >
+                                                    Check-in
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 );

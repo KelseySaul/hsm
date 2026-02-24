@@ -38,9 +38,9 @@ export default function DoctorDashboard() {
                     <p className="subtitle" style={{ marginBottom: 0 }}>Review schedule and consult your patients</p>
                 </div>
 
-                <div className="btn" style={{ background: 'var(--warning-bg)', border: '1px solid rgba(245, 158, 11, 0.2)', color: 'var(--warning)', display: 'flex', gap: '0.5rem', alignItems: 'center', borderRadius: 'var(--radius-full)' }}>
+                <div className="status-badge status-warning" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <Calendar size={18} />
-                    <span>My Schedule</span>
+                    <span>Clinical Schedule</span>
                 </div>
             </div>
 
@@ -107,7 +107,7 @@ function PatientRow({ appt }) {
                 </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <span style={{ fontSize: '0.8rem', color: '#10b981', background: `#10b98115`, border: `1px solid #10b98130`, padding: '4px 10px', borderRadius: 'var(--radius-full)', fontWeight: '500' }}>Ready</span>
+                <span className="status-badge status-success">Ready</span>
                 <Link to={`/consultation?id=${appt.patient_id}&appt_id=${appt.id}`} className="btn btn-outline" style={{ padding: '6px 14px', fontSize: '0.85rem' }}>Consult</Link>
             </div>
         </div>

@@ -1,19 +1,54 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Activity, LogOut, UserPlus, Users, ClipboardList, Stethoscope, ShieldCheck, CalendarPlus, Menu, X } from 'lucide-react';
+import { patientService } from '../services/patientService';
+import { LogOut, Search, User, Loader2 } from 'lucide-react';
 
 export default function Navbar() {
-  const { user, profile, loading, signOut } = useAuth();
+  const { profile, loading, signOut } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const role = loading ? null : (profile?.role ?? null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Close menu on route change
+  // Search State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const searchRef = useRef(null);
+
   useEffect(() => {
-    setIsMenuOpen(false);
-  }, [location]);
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchQuery.length >= 2) {
+        setIsSearching(true);
+        try {
+          const data = await patientService.searchPatients(searchQuery);
+          setResults(data || []);
+          setShowResults(true);
+        } catch (err) {
+          console.error("Search error:", err);
+          setResults([]);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setResults([]);
+        setShowResults(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  // Close results on click outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowResults(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [searchRef]);
 
   const handleLogout = async (e) => {
     e.preventDefault();
@@ -26,146 +61,126 @@ export default function Navbar() {
     }
   };
 
-  const navLinks = [
-    { to: "/admin", icon: <ShieldCheck size={18} />, label: "Admin", roles: ['admin'] },
-    { to: "/add-patient", icon: <UserPlus size={18} />, label: "Register", roles: ['admin', 'receptionist'] },
-    { to: "/appointments", icon: <CalendarPlus size={18} />, label: "Appointments", roles: ['admin', 'receptionist'] },
-    { to: "/triage", icon: <ClipboardList size={18} />, label: "Triage", roles: ['admin', 'nurse'] },
-    { to: "/consultation", icon: <Stethoscope size={18} />, label: "Consult", roles: ['admin', 'doctor'] },
-    { to: "/patients", icon: <Users size={18} />, label: "Directory", roles: ['admin', 'doctor', 'nurse', 'receptionist'] },
-    { to: "/patient-portal", icon: <CalendarPlus size={18} />, label: "My Portal", roles: ['patient'] },
-  ];
-
-  const filteredLinks = navLinks.filter(link => link.roles.includes(role));
+  const handleSelectPatient = (patient) => {
+    setShowResults(false);
+    setSearchQuery('');
+    // For now, navigate to directory with a search param
+    navigate(`/patients?search=${patient.id}`);
+  };
 
   return (
-    <>
-      <nav className="glass-panel" style={{
-        margin: '1rem auto',
-        maxWidth: '1280px',
-        borderRadius: 'var(--radius)',
-        padding: '0.75rem 1.25rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        position: 'sticky',
-        top: '1rem',
-        zIndex: 1000,
-        width: 'calc(100% - 1.5rem)',
-      }}>
-        <Link to="/" style={{
-          display: 'flex', alignItems: 'center', gap: '0.5rem',
-          textDecoration: 'none', color: 'var(--text-main)',
-          fontWeight: '700', fontFamily: "'Outfit', sans-serif",
-          fontSize: '1.1rem', letterSpacing: '-0.02em', flexShrink: 0
-        }}>
-          <div style={{
-            background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
-            padding: '6px', borderRadius: '10px', display: 'flex', color: 'white', boxShadow: 'var(--neon-glow)'
-          }}>
-            <Activity size={20} />
-          </div>
-          <span className="brand-text">Protocol Health Care</span>
-        </Link>
-
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          {user && !loading && (
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }} className="hide-mobile">
-              {filteredLinks.map(link => (
-                <NavLink key={link.to} to={link.to} icon={link.icon} label={link.label} />
-              ))}
-              <div style={{ width: '1px', height: '24px', background: 'var(--border)', margin: '0 0.5rem' }} />
-            </div>
-          )}
-
-          {user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }} className="hide-mobile">
-                <span style={{ fontSize: '0.85rem', fontWeight: '500', color: 'var(--text-main)' }}>{profile?.full_name || 'User'}</span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{role}</span>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="btn btn-outline"
-                style={{ padding: '0.5rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-main)' }}
-                title="Logout"
-              >
-                <LogOut size={18} />
-                <span className="hide-mobile" style={{ marginLeft: '0.4rem', fontSize: '0.85rem' }}>Logout</span>
-              </button>
-
-              {/* Mobile Menu Toggle */}
-              <button
-                className="show-mobile btn btn-outline"
-                style={{ padding: '0.5rem', border: 'none' }}
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-              >
-                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
-            </div>
+    <header className="top-header">
+      <div
+        ref={searchRef}
+        style={{ position: 'relative', width: '400px' }}
+        className="hide-mobile"
+      >
+        <div style={{ position: 'relative' }}>
+          {isSearching ? (
+            <Loader2 size={18} className="animate-spin" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)' }} />
           ) : (
-            !loading && <Link to="/login" className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>Login</Link>
+            <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           )}
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
+            placeholder="Global Patient Search (Name or ID)..."
+            style={{
+              paddingLeft: '40px',
+              borderRadius: 'var(--radius-full)',
+              background: 'rgba(255,255,255,0.03)',
+              height: '40px',
+              fontSize: '0.9rem',
+              width: '100%',
+              border: results.length > 0 && showResults ? '1px solid var(--primary)' : '1px solid var(--border)',
+              transition: 'var(--transition)'
+            }}
+          />
         </div>
-      </nav>
 
-      {/* Mobile Menu Overlay */}
-      {isMenuOpen && (
-        <div className="show-mobile animate-fade-in" style={{
-          position: 'fixed', top: '5.5rem', left: '0.75rem', right: '0.75rem',
-          background: 'var(--bg-modal)', backdropFilter: 'blur(12px)',
-          borderRadius: 'var(--radius)', border: '1px solid var(--border)',
-          zIndex: 999, padding: '1.5rem', boxShadow: 'var(--glass-shadow)'
-        }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <div style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
-              <p style={{ fontWeight: '600', margin: 0 }}>{profile?.full_name || 'User'}</p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{role}</p>
-            </div>
-            {filteredLinks.map(link => (
-              <Link
-                key={link.to}
-                to={link.to}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '1rem',
-                  padding: '1rem', borderRadius: 'var(--radius-sm)',
-                  textDecoration: 'none', color: 'var(--text-main)',
-                  background: location.pathname === link.to ? 'rgba(255,255,255,0.05)' : 'transparent'
-                }}
-              >
-                {link.icon}
-                <span style={{ fontWeight: '500' }}>{link.label}</span>
-              </Link>
-            ))}
+        {/* Search Results Dropdown */}
+        {showResults && (results.length > 0 || isSearching) && (
+          <div className="card" style={{
+            position: 'absolute',
+            top: '48px',
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+            padding: '0.5rem',
+            boxShadow: 'var(--glass-shadow)',
+            background: 'var(--bg-surface)',
+            maxHeight: '400px',
+            overflowY: 'auto',
+            border: '1px solid var(--border-light)',
+            borderRadius: 'var(--radius-sm)'
+          }}>
+            {isSearching && results.length === 0 ? (
+              <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Searching...</div>
+            ) : results.length > 0 ? (
+              results.map(patient => (
+                <button
+                  key={patient.id}
+                  onClick={() => handleSelectPatient(patient)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    textAlign: 'left',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-main)',
+                    cursor: 'pointer',
+                    gap: '2px',
+                    transition: 'var(--transition)'
+                  }}
+                  onMouseOver={e => e.currentTarget.style.background = 'var(--bg-main)'}
+                  onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span style={{ fontWeight: '600', fontSize: '0.9rem' }}>{patient.first_name} {patient.last_name}</span>
+                  <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <span style={{ color: 'var(--primary)', fontFamily: 'monospace' }}>ID: {patient.id.substring(0, 8)}</span>
+                    <span>{patient.gender} • {patient.date_of_birth}</span>
+                  </div>
+                </button>
+              ))
+            ) : (
+              <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No patients found</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ textAlign: 'right' }} className="hide-mobile">
+            <p style={{ margin: 0, fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-main)' }}>{profile?.full_name || 'User'}</p>
+            <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--primary)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{role}</p>
+          </div>
+          <div style={{
+            width: '40px', height: '40px',
+            borderRadius: 'var(--radius-full)',
+            background: 'var(--bg-main)',
+            border: '2px solid var(--border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--text-muted)'
+          }}>
+            <User size={20} />
           </div>
         </div>
-      )}
-    </>
-  );
-}
 
-function NavLink({ to, icon, label }) {
-  const location = useLocation();
-  const isActive = location.pathname === to;
-
-  return (
-    <Link to={to} style={{
-      display: 'flex', alignItems: 'center', gap: '0.3rem',
-      textDecoration: 'none', color: isActive ? 'var(--text-main)' : 'var(--text-muted)',
-      background: isActive ? 'rgba(255,255,255,0.05)' : 'transparent',
-      fontWeight: '500', fontSize: '0.85rem',
-      transition: 'all 0.2s ease', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)'
-    }}
-      onMouseOver={(e) => { e.currentTarget.style.color = 'var(--text-main)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; }}
-      onMouseOut={(e) => {
-        if (!isActive) {
-          e.currentTarget.style.color = 'var(--text-muted)';
-          e.currentTarget.style.background = 'transparent';
-        }
-      }}
-    >
-      {icon}
-      <span>{label}</span>
-    </Link>
+        <button
+          onClick={handleLogout}
+          className="btn btn-outline"
+          style={{ height: '40px', padding: '0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}
+        >
+          <LogOut size={16} />
+          <span className="hide-mobile">Sign Out</span>
+        </button>
+      </div>
+    </header>
   );
 }

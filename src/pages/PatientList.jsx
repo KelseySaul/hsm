@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { patientService } from '../services/patientService';
 import { Search, User, FileText, Activity, ChevronDown, ChevronUp, Stethoscope, Calendar, RefreshCw, AlertCircle, Pill, Clock, ArrowLeft } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function PatientList() {
     const { profile } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const role = profile?.role;
 
     const [patients, setPatients] = useState([]);
@@ -59,7 +60,20 @@ export default function PatientList() {
         }
     };
 
-    useEffect(() => { fetchPatients(); }, []);
+    useEffect(() => {
+        fetchPatients();
+
+        // Handle search query parameter
+        const params = new URLSearchParams(location.search);
+        const searchId = params.get('search');
+        if (searchId) {
+            setSearchTerm(searchId);
+            setExpanded(searchId);
+            if (role === 'doctor' || role === 'admin') {
+                fetchClinicalRecords(searchId);
+            }
+        }
+    }, [location.search]);
 
     const getApptState = (appt) => {
         if (!appt) return null;
@@ -115,7 +129,10 @@ export default function PatientList() {
     const filteredPatients = patients.filter(p => {
         const fullName = `${p?.first_name || ''} ${p?.last_name || ''}`.toLowerCase();
         const phone = (p?.phone || '').toLowerCase();
-        return fullName.includes(searchTerm.toLowerCase()) || phone.includes(searchTerm.toLowerCase());
+        const id = (p?.id || '').toLowerCase();
+        return fullName.includes(searchTerm.toLowerCase()) ||
+            phone.includes(searchTerm.toLowerCase()) ||
+            id.includes(searchTerm.toLowerCase());
     });
 
     return (

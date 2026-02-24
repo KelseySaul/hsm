@@ -169,5 +169,19 @@ export const patientService = {
       .select();
     if (error) throw error;
     return data;
+  },
+
+  // Search patients by name or ID
+  async searchPatients(query) {
+    if (!query || query.length < 2) return [];
+
+    const { data, error } = await supabase
+      .from('patients')
+      .select('id, first_name, last_name, gender, date_of_birth')
+      .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,id.ilike.%${query}%`)
+      .limit(10);
+
+    if (error) throw error;
+    return data || [];
   }
 };

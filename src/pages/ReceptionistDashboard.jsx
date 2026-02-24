@@ -13,62 +13,50 @@ export default function ReceptionistDashboard() {
                     icon={<UserPlus size={32} />}
                     label="New Registration"
                     desc="Register a new patient into the hospital system."
-                    gradient="linear-gradient(135deg, var(--primary), var(--secondary))"
+                    color="var(--primary)"
                 />
                 <MenuCard
                     to="/patients"
                     icon={<Search size={32} />}
                     label="Patient Directory"
                     desc="View, search and manage existing records."
-                    gradient="linear-gradient(135deg, #3b82f6, #8b5cf6)"
+                    color="#3b82f6"
                 />
                 <MenuCard
                     to="/appointments"
                     icon={<Calendar size={32} />}
                     label="Appointments"
                     desc="Book or reschedule future patient visits."
-                    gradient="linear-gradient(135deg, #10b981, #059669)"
+                    color="#10b981"
                 />
                 <MenuCard
                     to="/billing"
                     icon={<CreditCard size={32} />}
                     label="Billing & POS"
                     desc="Generate invoices and handle patient payments."
-                    gradient="linear-gradient(135deg, #f59e0b, #d97706)"
+                    color="#f59e0b"
                 />
             </div>
         </div>
     );
 }
 
-function MenuCard({ to, icon, label, desc, gradient }) {
+function MenuCard({ to, icon, label, desc, color }) {
     return (
         <Link to={to} style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="card flex-center" style={{
                 height: '100%',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                cursor: 'pointer',
                 flexDirection: 'column',
                 textAlign: 'center',
-                padding: '2.5rem 1.5rem'
-            }}
-                onMouseOver={e => {
-                    e.currentTarget.style.transform = 'translateY(-6px)';
-                    e.currentTarget.style.borderColor = 'var(--border-light)';
-                    e.currentTarget.style.boxShadow = 'var(--neon-glow)';
-                }}
-                onMouseOut={e => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.borderColor = 'var(--border)';
-                    e.currentTarget.style.boxShadow = 'var(--glass-shadow)';
-                }}>
+                padding: '2.5rem 1.5rem',
+                borderLeft: `4px solid ${color}`
+            }}>
                 <div style={{
-                    background: gradient,
-                    padding: '16px',
-                    borderRadius: '20px',
-                    color: 'white',
-                    marginBottom: '1.5rem',
-                    boxShadow: '0 8px 20px -5px rgba(0,0,0,0.3)'
+                    background: `${color}15`,
+                    padding: '20px',
+                    borderRadius: 'var(--radius-sm)',
+                    color: color,
+                    marginBottom: '1.5rem'
                 }}>
                     {icon}
                 </div>

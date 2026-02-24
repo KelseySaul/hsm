@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { supabase } from './services/supabaseClient';
 import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Pages
@@ -25,6 +27,7 @@ import PatientPortal from './pages/PatientPortal';
 
 function App() {
   const { profile, loading, user } = useAuth();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const role = profile?.role;
 
   // Root redirect based on role
@@ -32,12 +35,13 @@ function App() {
     if (loading) return <div className="container" style={{ textAlign: 'center', marginTop: '50px' }}>Loading Profile...</div>;
     if (!user) return <Login />;
     if (!role) {
-      // Handle cases where user is logged in but no profile/role exists yet
-      return <div className="container" style={{ textAlign: 'center', marginTop: '50px' }}>
-        <h3>Profile not found</h3>
-        <p>Your account is pending role assignment. Please contact an admin.</p>
-        <button className="btn" onClick={() => supabase.auth.signOut()}>Logout</button>
-      </div>;
+      return (
+        <div className="container" style={{ textAlign: 'center', marginTop: '50px' }}>
+          <h3>Profile not found</h3>
+          <p>Your account is pending role assignment. Please contact an admin.</p>
+          <button className="btn" onClick={() => supabase.auth.signOut()}>Logout</button>
+        </div>
+      );
     }
     switch (role) {
       case 'admin': return <AdminDashboard />;
@@ -48,62 +52,75 @@ function App() {
     }
   };
 
+  const showNavigation = user && role;
+
   return (
     <Router>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={getHomeElement()} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/unauthorized" element={<Unauthorized />} />
+      <div className={showNavigation ? "app-layout" : ""}>
+        {showNavigation && (
+          <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+        )}
 
-        {/* Admin Routes */}
-        <Route path="/admin" element={
-          <ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>
-        } />
-        <Route path="/manage-users" element={
-          <ProtectedRoute allowedRoles={['admin']}><ManageUsers /></ProtectedRoute>
-        } />
+        <main className={showNavigation ? "main-content" : ""}>
+          {showNavigation && <Navbar />}
 
-        {/* Shared Staff Routes */}
-        <Route path="/patients" element={
-          <ProtectedRoute allowedRoles={['admin', 'doctor', 'nurse', 'receptionist']}><PatientList /></ProtectedRoute>
-        } />
-        <Route path="/billing" element={
-          <ProtectedRoute allowedRoles={['admin', 'receptionist']}><Billing /></ProtectedRoute>
-        } />
+          <div className={showNavigation ? "page-container" : ""}>
+            <Routes>
+              <Route path="/" element={getHomeElement()} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/unauthorized" element={<Unauthorized />} />
 
-        {/* Receptionist/Admin Routes */}
-        <Route path="/add-patient" element={
-          <ProtectedRoute allowedRoles={['admin', 'receptionist']}><AddPatient /></ProtectedRoute>
-        } />
-        <Route path="/appointments" element={
-          <ProtectedRoute allowedRoles={['admin', 'receptionist']}><Appointments /></ProtectedRoute>
-        } />
+              {/* Admin Routes */}
+              <Route path="/admin" element={
+                <ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>
+              } />
+              <Route path="/manage-users" element={
+                <ProtectedRoute allowedRoles={['admin']}><ManageUsers /></ProtectedRoute>
+              } />
 
-        {/* Nurse/Admin Routes */}
-        <Route path="/triage" element={
-          <ProtectedRoute allowedRoles={['admin', 'nurse']}><Triage /></ProtectedRoute>
-        } />
-        <Route path="/medication" element={
-          <ProtectedRoute allowedRoles={['admin', 'nurse']}><MedicationLog /></ProtectedRoute>
-        } />
-        <Route path="/ward-status" element={
-          <ProtectedRoute allowedRoles={['admin', 'nurse']}><WardStatus /></ProtectedRoute>
-        } />
+              {/* Shared Staff Routes */}
+              <Route path="/patients" element={
+                <ProtectedRoute allowedRoles={['admin', 'doctor', 'nurse', 'receptionist']}><PatientList /></ProtectedRoute>
+              } />
+              <Route path="/billing" element={
+                <ProtectedRoute allowedRoles={['admin', 'receptionist']}><Billing /></ProtectedRoute>
+              } />
 
-        {/* Doctor/Admin Routes */}
-        <Route path="/consultation" element={
-          <ProtectedRoute allowedRoles={['admin', 'doctor']}><Consultation /></ProtectedRoute>
-        } />
+              {/* Receptionist/Admin Routes */}
+              <Route path="/add-patient" element={
+                <ProtectedRoute allowedRoles={['admin', 'receptionist']}><AddPatient /></ProtectedRoute>
+              } />
+              <Route path="/appointments" element={
+                <ProtectedRoute allowedRoles={['admin', 'receptionist']}><Appointments /></ProtectedRoute>
+              } />
 
-        {/* Patient Routes */}
-        <Route path="/patient-portal" element={
-          <ProtectedRoute allowedRoles={['patient', 'admin']}><PatientPortal /></ProtectedRoute>
-        } />
+              {/* Nurse/Admin Routes */}
+              <Route path="/triage" element={
+                <ProtectedRoute allowedRoles={['admin', 'nurse']}><Triage /></ProtectedRoute>
+              } />
+              <Route path="/medication" element={
+                <ProtectedRoute allowedRoles={['admin', 'nurse']}><MedicationLog /></ProtectedRoute>
+              } />
+              <Route path="/ward-status" element={
+                <ProtectedRoute allowedRoles={['admin', 'nurse']}><WardStatus /></ProtectedRoute>
+              } />
 
-        {/* Catch All */}
-        <Route path="*" element={<h1>404 - Not Found</h1>} />
-      </Routes>
+              {/* Doctor/Admin Routes */}
+              <Route path="/consultation" element={
+                <ProtectedRoute allowedRoles={['admin', 'doctor']}><Consultation /></ProtectedRoute>
+              } />
+
+              {/* Patient Routes */}
+              <Route path="/patient-portal" element={
+                <ProtectedRoute allowedRoles={['patient', 'admin']}><PatientPortal /></ProtectedRoute>
+              } />
+
+              {/* Catch All */}
+              <Route path="*" element={<h1>404 - Not Found</h1>} />
+            </Routes>
+          </div>
+        </main>
+      </div>
     </Router>
   );
 }

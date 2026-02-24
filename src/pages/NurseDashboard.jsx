@@ -41,24 +41,21 @@ export default function NurseDashboard() {
                     icon={<ClipboardList size={28} />}
                     title="Patient Directory"
                     desc="Search entire hospital records."
-                    gradient="linear-gradient(135deg, #3b82f6, #60a5fa)"
-                    glowColor="rgba(59, 130, 246, 0.4)"
+                    color="#3b82f6"
                 />
                 <ActionCard
                     to="/medication"
                     icon={<Pill size={28} />}
                     title="Medication Log"
                     desc="Record administered treatments."
-                    gradient="linear-gradient(135deg, #10b981, #34d399)"
-                    glowColor="rgba(16, 185, 129, 0.4)"
+                    color="#10b981"
                 />
                 <ActionCard
                     to="/ward-status"
                     icon={<Activity size={28} />}
                     title="Ward Status"
                     desc="Update patient acuity and occupancy."
-                    gradient="linear-gradient(135deg, #8b5cf6, #a78bfa)"
-                    glowColor="rgba(139, 92, 246, 0.4)"
+                    color="#8b5cf6"
                 />
             </div>
 
@@ -105,31 +102,21 @@ export default function NurseDashboard() {
     );
 }
 
-function ActionCard({ to, icon, title, desc, gradient, glowColor }) {
+function ActionCard({ to, icon, title, desc, color }) {
     return (
         <Link to={to} style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="card" style={{
                 height: '100%',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                position: 'relative',
-                overflow: 'hidden',
-            }}
-                onMouseOver={e => {
-                    e.currentTarget.style.transform = 'translateY(-6px)';
-                    e.currentTarget.style.borderColor = 'var(--border-light)';
-                    e.currentTarget.style.boxShadow = `0 10px 30px -10px ${glowColor}`;
-                }}
-                onMouseOut={e => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.borderColor = 'var(--border)';
-                    e.currentTarget.style.boxShadow = 'var(--glass-shadow)';
-                }}>
-                <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: gradient }}></div>
-                <div style={{ background: gradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '1rem', display: 'inline-block' }}>
+                borderLeft: `4px solid ${color}`,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem'
+            }}>
+                <div style={{ color: color, marginBottom: '0.5rem' }}>
                     {icon}
                 </div>
-                <h3 style={{ marginBottom: '0.5rem', fontSize: '1.25rem' }}>{title}</h3>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{desc}</p>
+                <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{title}</h3>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: 0 }}>{desc}</p>
             </div>
         </Link>
     );
