@@ -17,13 +17,36 @@ export default function ManageUsers() {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            const { data: profiles, error: pErr } = await supabase
                 .from('profiles')
                 .select('*')
                 .order('updated_at', { ascending: false });
 
-            if (error) throw error;
-            setUsers(data || []);
+            if (pErr) throw pErr;
+
+            let mergedUsers = profiles || [];
+
+            // If we have admin access, enrich with auth metadata (e.g. banned_until)
+            if (supabaseAdmin) {
+                try {
+                    const { data: { users: authUsers }, error: aErr } = await supabaseAdmin.auth.admin.listUsers();
+                    if (!aErr) {
+                        mergedUsers = profiles.map(p => {
+                            const au = authUsers.find(u => u.id === p.id);
+                            // Consider user suspended if banned_until is in the future
+                            const isBanned = au?.banned_until && new Date(au.banned_until) > new Date();
+                            return {
+                                ...p,
+                                status: isBanned ? 'suspended' : (p.status || 'active')
+                            };
+                        });
+                    }
+                } catch (err) {
+                    console.warn("Could not fetch auth metadata:", err);
+                }
+            }
+
+            setUsers(mergedUsers);
         } catch (error) {
             console.error("Error fetching users:", error);
             alert("Failed to load users: " + error.message);
@@ -88,6 +111,61 @@ export default function ManageUsers() {
             fetchUsers();
         } catch (error) {
             alert('Failed to update role: ' + error.message);
+        }
+    };
+
+    const handleSuspendUser = async (user) => {
+        const isSuspended = user.status === 'suspended';
+        const action = isSuspended ? 'activate' : 'suspend';
+        
+        if (!window.confirm(`Are you sure you want to ${action} ${user.full_name || 'this user'}?`)) return;
+
+        try {
+            if (!supabaseAdmin) {
+                alert("Error: Supabase Service Role Key is missing. This action requires admin privileges.");
+                return;
+            }
+
+            const { error } = await supabaseAdmin.auth.admin.updateUserById(
+                user.id,
+                { ban_duration: isSuspended ? 'none' : 'infinite' }
+            );
+
+            if (error) throw error;
+
+            // Optional: Update a status column in profiles if it exists
+            await supabase
+                .from('profiles')
+                .update({ status: isSuspended ? 'active' : 'suspended' })
+                .eq('id', user.id);
+
+            alert(`User ${isSuspended ? 'activated' : 'suspended'} successfully!`);
+            fetchUsers();
+        } catch (error) {
+            console.error(error);
+            alert("Failed to update user status: " + error.message);
+        }
+    };
+
+    const handleDeleteUser = async (userId, fullName) => {
+        if (!window.confirm(`CRITICAL: Are you sure you want to PERMANENTLY delete the account for ${fullName}? This cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            if (!supabaseAdmin) {
+                alert("Error: Supabase Service Role Key is missing.");
+                return;
+            }
+
+            const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+            if (error) throw error;
+
+            alert('Account deleted successfully.');
+            fetchUsers();
+        } catch (error) {
+            console.error(error);
+            alert("Failed to delete user: " + error.message);
         }
     };
 
@@ -214,9 +292,32 @@ export default function ManageUsers() {
                                             {new Date(user.updated_at).toLocaleDateString()}
                                         </td>
                                         <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
-                                            <button className="btn btn-outline" style={{ padding: '6px 12px', fontSize: '0.85rem', color: 'var(--error)', borderColor: 'rgba(239, 68, 68, 0.2)' }} disabled>
-                                                <Trash2 size={14} style={{ marginRight: '6px' }} /> Suspend
-                                            </button>
+                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                <button 
+                                                    onClick={() => handleSuspendUser(user)}
+                                                    className="btn btn-outline" 
+                                                    style={{ 
+                                                        padding: '6px 12px', 
+                                                        fontSize: '0.85rem', 
+                                                        color: user.status === 'suspended' ? '#10b981' : '#f59e0b', 
+                                                        borderColor: user.status === 'suspended' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)' 
+                                                    }}
+                                                >
+                                                    {user.status === 'suspended' ? 'Activate' : 'Suspend'}
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteUser(user.id, user.full_name)}
+                                                    className="btn btn-outline" 
+                                                    style={{ 
+                                                        padding: '6px 12px', 
+                                                        fontSize: '0.85rem', 
+                                                        color: 'var(--error)', 
+                                                        borderColor: 'rgba(239, 68, 68, 0.2)' 
+                                                    }}
+                                                >
+                                                    <Trash2 size={14} style={{ marginRight: '6px' }} /> Delete
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))

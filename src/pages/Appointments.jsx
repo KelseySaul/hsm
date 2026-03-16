@@ -78,7 +78,8 @@ export default function Appointments() {
         if (!scheduledDate) return;
         setScheduleLoading(true);
         try {
-            const dateTimeStr = `${scheduledDate}T${scheduledTime}:00`;
+            const localDateTime = new Date(`${scheduledDate}T${scheduledTime}:00`);
+            const dateTimeStr = localDateTime.toISOString();
 
             // 1. Update request status
             const { error: reqErr } = await supabase
@@ -352,7 +353,14 @@ export default function Appointments() {
                                         {req.status === 'pending' && !isSchedulingThis && (
                                             <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>
                                                 <button
-                                                    onClick={() => { setScheduling(req); setScheduledDate(req.preferred_date || ''); }}
+                                                    onClick={() => {
+                                                        setScheduling(req);
+                                                        setScheduledDate(req.preferred_date || '');
+                                                        let defaultTime = '09:00';
+                                                        if (req.preferred_time?.includes('Afternoon')) defaultTime = '13:00';
+                                                        else if (req.preferred_time?.includes('Evening')) defaultTime = '16:00';
+                                                        setScheduledTime(defaultTime);
+                                                    }}
                                                     className="btn btn-primary"
                                                     style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                                                 >
